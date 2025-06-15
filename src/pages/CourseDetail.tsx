@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   Play, Clock, Users, Star, Globe, Award, BookOpen, 
   CheckCircle, Download, ExternalLink, ShoppingCart,
-  ChevronDown, ChevronUp, PlayCircle, FileText, HelpCircle
+  ChevronDown, ChevronUp, PlayCircle, FileText, HelpCircle,
+  X, CreditCard, Shield
 } from 'lucide-react';
 import { Course, Review } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +19,9 @@ interface CourseDetailProps {
 const CourseDetail: React.FC<CourseDetailProps> = ({ course, onEnroll, onStartLearning }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const { user } = useAuth();
-  const { addToCart, cart, isEnrolled } = useCourse();
+  const { addToCart, cart, isEnrolled, processPayment, enrollInCourse } = useCourse();
   
   const isInCart = cart.some(item => item.courseId === course.id);
   const isUserEnrolled = user ? isEnrolled(course.id, user.id) : false;
@@ -35,6 +37,28 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onEnroll, onStartLe
   const handleAddToCart = () => {
     if (!isInCart && !isUserEnrolled) {
       addToCart(course);
+    }
+  };
+
+  const handleEnrollClick = () => {
+    if (!user) {
+      alert('Please log in to enroll in this course');
+      return;
+    }
+    setShowPurchaseModal(true);
+  };
+
+  const handlePurchaseConfirm = () => {
+    if (!user) return;
+    
+    try {
+      const payment = processPayment(course.id, user.id, course.price, 'card');
+      enrollInCourse(course.id, user.id, payment);
+      setShowPurchaseModal(false);
+      alert('🎉 Congratulations! You have successfully enrolled in the course. You can now access all lessons and materials.');
+    } catch (error) {
+      console.error('Enrollment failed:', error);
+      alert('Enrollment failed. Please try again.');
     }
   };
 
@@ -162,7 +186,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onEnroll, onStartLe
                   ) : (
                     <div className="space-y-3">
                       <button
-                        onClick={onEnroll}
+                        onClick={handleEnrollClick}
                         className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
                       >
                         Enroll Now
@@ -483,6 +507,90 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onEnroll, onStartLe
           </div>
         </div>
       </div>
+
+      {/* Purchase Confirmation Modal */}
+      {showPurchaseModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowPurchaseModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            <div className="text-center">
+              <div className="bg-purple-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <ShoppingCart className="h-8 w-8 text-purple-600" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Purchase This Course</h2>
+              <p className="text-gray-600 mb-6">
+                You're about to purchase access to this amazing course. Once purchased, you'll have lifetime access to all course materials.
+              </p>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <img
+                    src={course.thumbnail}
+                    alt={course.title}
+                    className="w-16 h-16 rounded-lg object-cover"
+                  />
+                  <div className="flex-1 text-left">
+                    <h3 className="font-medium text-gray-900">{course.title}</h3>
+                    <p className="text-sm text-gray-600">by {course.instructor.name}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-lg font-bold text-gray-900">${course.price.toFixed(2)}</span>
+                      {course.originalPrice && (
+                        <span className="text-sm text-gray-500 line-through">
+                          ${course.originalPrice.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h4 className="font-medium text-blue-900 mb-2">What's included:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• {course.totalLessons} video lessons ({course.duration})</li>
+                  <li>• Downloadable resources and materials</li>
+                  <li>• Lifetime access to course content</li>
+                  <li>• Mobile and desktop access</li>
+                  {course.hasCertificate && <li>• Certificate of completion</li>}
+                  <li>• 30-day money-back guarantee</li>
+                </ul>
+              </div>
+
+              <div className="flex items-center space-x-2 mb-6 text-sm text-gray-600">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span>Secure payment processing</span>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handlePurchaseConfirm}
+                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  <span>Complete Purchase - ${course.price.toFixed(2)}</span>
+                </button>
+                <button
+                  onClick={() => setShowPurchaseModal(false)}
+                  className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                By purchasing, you agree to our Terms of Service and Privacy Policy.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

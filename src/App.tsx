@@ -25,7 +25,7 @@ function AppContent() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
 
   const { user } = useAuth();
-  const { courses, enrollInCourse, isEnrolled, processPayment } = useCourse();
+  const { courses, isEnrolled } = useCourse();
 
   const selectedCourse = selectedCourseId 
     ? courses.find(course => course.id === selectedCourseId)
@@ -55,17 +55,8 @@ function AppContent() {
   };
 
   const handleEnrollInCourse = () => {
-    if (!user) {
-      setAuthModalOpen(true);
-      return;
-    }
-    
-    if (selectedCourseId && selectedCourse) {
-      // Process payment and enrollment
-      const payment = processPayment(selectedCourseId, user.id, selectedCourse.price, 'card');
-      enrollInCourse(selectedCourseId, user.id, payment.id);
-      alert('Successfully enrolled in the course!');
-    }
+    // This will be handled by the CourseDetail component now
+    console.log('Enrollment handled by CourseDetail component');
   };
 
   const handleStartLearning = () => {

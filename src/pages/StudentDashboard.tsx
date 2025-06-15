@@ -3,7 +3,8 @@ import {
   BookOpen, Clock, Award, TrendingUp, Play, Calendar,
   BarChart3, Target, CheckCircle, Star, Download, Flame,
   MessageSquare, Video, FileText, Users, Bell, Settings,
-  Search, Filter, Eye, Send, Upload, HelpCircle
+  Search, Filter, Eye, Send, Upload, HelpCircle, Brain,
+  Map, PenTool, ChevronRight, Lightbulb, Timer
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCourse } from '../context/CourseContext';
@@ -18,8 +19,12 @@ const StudentDashboard: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [showMessages, setShowMessages] = useState(false);
   const [showLiveClasses, setShowLiveClasses] = useState(false);
+  const [showLessonDetails, setShowLessonDetails] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [messageText, setMessageText] = useState('');
   const [selectedInstructor, setSelectedInstructor] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
+  const [mindmapNodes, setMindmapNodes] = useState<any[]>([]);
   const { user } = useAuth();
   const { courses, enrollments, certificates, getEnrolledCourses } = useCourse();
   
@@ -147,6 +152,36 @@ const StudentDashboard: React.FC = () => {
       setSelectedInstructor(course.instructor.id);
       setShowMessages(true);
     }
+  };
+
+  const handleLessonClick = (course: any, lesson: any) => {
+    setSelectedCourse(course);
+    setSelectedLesson(lesson);
+    setShowLessonDetails(true);
+  };
+
+  const handleStartLesson = () => {
+    if (selectedCourse && selectedLesson) {
+      // Navigate to course player with specific lesson
+      console.log('Starting lesson:', selectedLesson.title, 'in course:', selectedCourse.title);
+      setShowLessonDetails(false);
+    }
+  };
+
+  const handleSaveNotes = () => {
+    console.log('Saving notes:', notes);
+    alert('Notes saved successfully!');
+  };
+
+  const addMindmapNode = () => {
+    const newNode = {
+      id: Date.now(),
+      text: 'New Concept',
+      x: Math.random() * 300,
+      y: Math.random() * 200,
+      connections: []
+    };
+    setMindmapNodes([...mindmapNodes, newNode]);
   };
 
   const tabs = [
@@ -459,7 +494,7 @@ const StudentDashboard: React.FC = () => {
                               <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
                                 Continue Learning
                               </button>
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-3 gap-2">
                                 <button 
                                   onClick={() => handleAskDoubt(course?.id || '')}
                                   className="bg-green-50 text-green-700 py-2 px-3 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium flex items-center justify-center space-x-1"
@@ -470,6 +505,13 @@ const StudentDashboard: React.FC = () => {
                                 <button className="bg-purple-50 text-purple-700 py-2 px-3 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium flex items-center justify-center space-x-1">
                                   <Video className="h-4 w-4" />
                                   <span>Live</span>
+                                </button>
+                                <button 
+                                  onClick={() => handleLessonClick(course, course?.lessons[0])}
+                                  className="bg-orange-50 text-orange-700 py-2 px-3 rounded-lg hover:bg-orange-100 transition-colors text-sm font-medium flex items-center justify-center space-x-1"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span>Details</span>
                                 </button>
                               </div>
                             </div>
@@ -874,6 +916,174 @@ const StudentDashboard: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Lesson Details Modal */}
+        {showLessonDetails && selectedLesson && selectedCourse && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-6xl w-full h-[90vh] flex flex-col">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{selectedLesson.title}</h3>
+                  <p className="text-gray-600">{selectedCourse.title}</p>
+                </div>
+                <button
+                  onClick={() => setShowLessonDetails(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="flex-1 flex">
+                {/* Main Content */}
+                <div className="flex-1 p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                    {/* Video/Content Area */}
+                    <div className="space-y-4">
+                      <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center">
+                        <button 
+                          onClick={handleStartLesson}
+                          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                        >
+                          <Play className="h-5 w-5" />
+                          <span>Start Lesson</span>
+                        </button>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-900 mb-2">Lesson Description</h4>
+                        <p className="text-gray-700 text-sm">{selectedLesson.description}</p>
+                      </div>
+
+                      {/* Schedule */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-medium text-blue-900 mb-3 flex items-center space-x-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>Study Schedule</span>
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">Duration:</span>
+                            <span className="font-medium text-blue-900">{selectedLesson.duration}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">Estimated Study Time:</span>
+                            <span className="font-medium text-blue-900">45 minutes</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">Difficulty:</span>
+                            <span className="font-medium text-blue-900">Intermediate</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tools Area */}
+                    <div className="space-y-4">
+                      {/* Notes */}
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 className="font-medium text-yellow-900 mb-3 flex items-center space-x-2">
+                          <PenTool className="h-4 w-4" />
+                          <span>Lesson Notes</span>
+                        </h4>
+                        <textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Take notes while learning..."
+                          className="w-full h-32 p-3 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none resize-none text-sm"
+                        />
+                        <button 
+                          onClick={handleSaveNotes}
+                          className="mt-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                        >
+                          Save Notes
+                        </button>
+                      </div>
+
+                      {/* Mind Map */}
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-medium text-purple-900 mb-3 flex items-center space-x-2">
+                          <Brain className="h-4 w-4" />
+                          <span>Mind Map</span>
+                        </h4>
+                        <div className="bg-white border border-purple-300 rounded-lg h-32 relative overflow-hidden">
+                          {mindmapNodes.map((node) => (
+                            <div
+                              key={node.id}
+                              className="absolute bg-purple-100 border border-purple-300 rounded-lg p-2 text-xs cursor-move"
+                              style={{ left: node.x, top: node.y }}
+                            >
+                              {node.text}
+                            </div>
+                          ))}
+                          <button
+                            onClick={addMindmapNode}
+                            className="absolute bottom-2 right-2 bg-purple-600 text-white p-1 rounded text-xs hover:bg-purple-700 transition-colors"
+                          >
+                            + Add Node
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Quiz Preview */}
+                      {selectedLesson.quiz && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                          <h4 className="font-medium text-orange-900 mb-3 flex items-center space-x-2">
+                            <HelpCircle className="h-4 w-4" />
+                            <span>Quiz Available</span>
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-orange-700">Questions:</span>
+                              <span className="font-medium text-orange-900">{selectedLesson.quiz.questions.length}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-orange-700">Passing Score:</span>
+                              <span className="font-medium text-orange-900">{selectedLesson.quiz.passingScore}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-orange-700">Time Limit:</span>
+                              <span className="font-medium text-orange-900">{selectedLesson.quiz.timeLimit} minutes</span>
+                            </div>
+                          </div>
+                          <button className="mt-3 w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors text-sm">
+                            Take Quiz After Lesson
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Quick Actions */}
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+                          <Lightbulb className="h-4 w-4" />
+                          <span>Quick Actions</span>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button className="bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition-colors flex items-center justify-center space-x-1">
+                            <MessageSquare className="h-3 w-3" />
+                            <span>Ask Question</span>
+                          </button>
+                          <button className="bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1">
+                            <Download className="h-3 w-3" />
+                            <span>Resources</span>
+                          </button>
+                          <button className="bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition-colors flex items-center justify-center space-x-1">
+                            <Timer className="h-3 w-3" />
+                            <span>Set Timer</span>
+                          </button>
+                          <button className="bg-orange-600 text-white py-2 px-3 rounded text-sm hover:bg-orange-700 transition-colors flex items-center justify-center space-x-1">
+                            <Star className="h-3 w-3" />
+                            <span>Bookmark</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages Modal */}
         {showMessages && (
