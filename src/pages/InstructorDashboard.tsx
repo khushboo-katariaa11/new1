@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCourse } from '../context/CourseContext';
+import { supabase } from '../lib/supabase';
 import { 
   BookOpen, 
   Users, 
@@ -17,8 +18,15 @@ import {
   Clock,
   Award,
   Target,
-  Zap
+  Zap,
+  Video,
+  FileText,
+  Settings
 } from 'lucide-react';
+import AssignmentManager from '../components/instructor/AssignmentManager';
+import LiveMeetingScheduler from '../components/instructor/LiveMeetingScheduler';
+import RevenueAnalytics from '../components/instructor/RevenueAnalytics';
+import StudentTracker from '../components/instructor/StudentTracker';
 
 interface DashboardStats {
   totalCourses: number;
@@ -29,18 +37,9 @@ interface DashboardStats {
   activeStudents: number;
 }
 
-interface RecentActivity {
-  id: string;
-  type: 'enrollment' | 'completion' | 'review' | 'question';
-  message: string;
-  timestamp: Date;
-  studentName: string;
-  courseName: string;
-}
-
 export default function InstructorDashboard() {
   const { user } = useAuth();
-  const { courses } = useCourse();
+  const { courses, enrollments, payments, refreshData } = useCourse();
   const [stats, setStats] = useState<DashboardStats>({
     totalCourses: 0,
     totalStudents: 0,
@@ -49,76 +48,51 @@ export default function InstructorDashboard() {
     completionRate: 0,
     activeStudents: 0
   });
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [selectedTimeframe, setSelectedTimeframe] = useState('7d');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showAssignmentManager, setShowAssignmentManager] = useState(false);
+  const [showLiveMeetingScheduler, setShowLiveMeetingScheduler] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Filter courses by instructor
-  const instructorCourses = courses.filter(course => course.instructor === user?.name);
+  const instructorCourses = courses.filter(course => course.instructor.id === user?.id);
+  const instructorPayments = payments.filter(payment => 
+    instructorCourses.some(course => course.id === payment.courseId)
+  );
 
   useEffect(() => {
-    // Calculate dashboard statistics
-    const totalCourses = instructorCourses.length;
-    const totalStudents = instructorCourses.reduce((sum, course) => sum + course.students, 0);
-    const totalRevenue = instructorCourses.reduce((sum, course) => sum + (course.price * course.students), 0);
-    const averageRating = instructorCourses.reduce((sum, course) => sum + course.rating, 0) / totalCourses || 0;
-    const completionRate = Math.floor(Math.random() * 30) + 70; // Mock completion rate
-    const activeStudents = Math.floor(totalStudents * 0.6); // Mock active students
+    if (user) {
+      loadInstructorData();
+    }
+  }, [user, courses, enrollments, payments]);
 
-    setStats({
-      totalCourses,
-      totalStudents,
-      totalRevenue,
-      averageRating,
-      completionRate,
-      activeStudents
-    });
+  const loadInstructorData = async () => {
+    try {
+      setLoading(true);
+      
+      // Calculate dashboard statistics
+      const totalCourses = instructorCourses.length;
+      const totalStudents = instructorCourses.reduce((sum, course) => sum + course.totalStudents, 0);
+      const totalRevenue = instructorPayments.reduce((sum, payment) => sum + payment.instructorEarnings, 0);
+      const averageRating = instructorCourses.length > 0 
+        ? instructorCourses.reduce((sum, course) => sum + course.rating, 0) / instructorCourses.length 
+        : 0;
+      const completionRate = Math.floor(Math.random() * 30) + 70; // Mock completion rate
+      const activeStudents = Math.floor(totalStudents * 0.6); // Mock active students
 
-    // Generate mock recent activity
-    const activities: RecentActivity[] = [
-      {
-        id: '1',
-        type: 'enrollment',
-        message: 'New student enrolled',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        studentName: 'Sarah Johnson',
-        courseName: 'React Fundamentals'
-      },
-      {
-        id: '2',
-        type: 'completion',
-        message: 'Course completed',
-        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-        studentName: 'Mike Chen',
-        courseName: 'Advanced JavaScript'
-      },
-      {
-        id: '3',
-        type: 'review',
-        message: 'New 5-star review',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-        studentName: 'Emily Davis',
-        courseName: 'Web Design Basics'
-      },
-      {
-        id: '4',
-        type: 'question',
-        message: 'Student asked a question',
-        timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-        studentName: 'Alex Rodriguez',
-        courseName: 'Python for Beginners'
-      }
-    ];
+      setStats({
+        totalCourses,
+        totalStudents,
+        totalRevenue,
+        averageRating,
+        completionRate,
+        activeStudents
+      });
 
-    setRecentActivity(activities);
-  }, [instructorCourses]);
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'enrollment': return <Users className="w-4 h-4 text-blue-500" />;
-      case 'completion': return <Award className="w-4 h-4 text-green-500" />;
-      case 'review': return <Star className="w-4 h-4 text-yellow-500" />;
-      case 'question': return <MessageSquare className="w-4 h-4 text-purple-500" />;
-      default: return <Clock className="w-4 h-4 text-gray-500" />;
+    } catch (error) {
+      console.error('Error loading instructor data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -130,6 +104,25 @@ export default function InstructorDashboard() {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'courses', label: 'My Courses' },
+    { id: 'students', label: 'Students' },
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'tools', label: 'Teaching Tools' }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -151,7 +144,10 @@ export default function InstructorDashboard() {
                 <option value="30d">Last 30 days</option>
                 <option value="90d">Last 90 days</option>
               </select>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+              <button 
+                onClick={() => window.location.href = '/create-course'}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
                 <Plus className="w-4 h-4" />
                 <span>Create Course</span>
               </button>
@@ -239,148 +235,341 @@ export default function InstructorDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Course Performance */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-900">Your Courses</h2>
-                <p className="text-gray-600 mt-1">Manage and track your course performance</p>
-              </div>
-              <div className="p-6">
-                {instructorCourses.length > 0 ? (
-                  <div className="space-y-4">
-                    {instructorCourses.map((course) => (
-                      <div key={course.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <img
-                            src={course.thumbnail}
-                            alt={course.title}
-                            className="w-16 h-16 rounded-lg object-cover"
-                          />
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{course.title}</h3>
-                            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-                              <span className="flex items-center">
-                                <Users className="w-4 h-4 mr-1" />
-                                {course.students} students
-                              </span>
-                              <span className="flex items-center">
-                                <Star className="w-4 h-4 mr-1 text-yellow-400" />
-                                {course.rating}
-                              </span>
-                              <span className="flex items-center">
-                                <DollarSign className="w-4 h-4 mr-1" />
-                                ${course.price}
-                              </span>
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'overview' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Course Performance */}
+                <div className="lg:col-span-2">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                    <div className="p-6 border-b border-gray-100">
+                      <h2 className="text-xl font-semibold text-gray-900">Your Courses</h2>
+                      <p className="text-gray-600 mt-1">Manage and track your course performance</p>
+                    </div>
+                    <div className="p-6">
+                      {instructorCourses.length > 0 ? (
+                        <div className="space-y-4">
+                          {instructorCourses.map((course) => (
+                            <div key={course.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                              <div className="flex items-center space-x-4">
+                                <img
+                                  src={course.thumbnail}
+                                  alt={course.title}
+                                  className="w-16 h-16 rounded-lg object-cover"
+                                />
+                                <div>
+                                  <h3 className="font-semibold text-gray-900">{course.title}</h3>
+                                  <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                                    <span className="flex items-center">
+                                      <Users className="w-4 h-4 mr-1" />
+                                      {course.totalStudents} students
+                                    </span>
+                                    <span className="flex items-center">
+                                      <Star className="w-4 h-4 mr-1 text-yellow-400" />
+                                      {course.rating}
+                                    </span>
+                                    <span className="flex items-center">
+                                      <DollarSign className="w-4 h-4 mr-1" />
+                                      ${course.price}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-12">
+                          <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No courses yet</h3>
+                          <p className="text-gray-600 mb-6">Create your first course to start teaching</p>
+                          <button 
+                            onClick={() => window.location.href = '/create-course'}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Create Your First Course
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
+                    <p className="text-gray-600 mt-1">Common tasks and shortcuts</p>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <button 
+                        onClick={() => window.location.href = '/create-course'}
+                        className="w-full flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
+                      >
+                        <div className="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-700 transition-colors">
+                          <Plus className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900">Create Course</p>
+                          <p className="text-sm text-gray-600">Start a new course</p>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => setShowLiveMeetingScheduler(true)}
+                        className="w-full flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
+                      >
+                        <div className="bg-green-600 p-2 rounded-lg group-hover:bg-green-700 transition-colors">
+                          <Video className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900">Schedule Live Class</p>
+                          <p className="text-sm text-gray-600">Create live sessions</p>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => setShowAssignmentManager(true)}
+                        className="w-full flex items-center space-x-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
+                      >
+                        <div className="bg-purple-600 p-2 rounded-lg group-hover:bg-purple-700 transition-colors">
+                          <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900">Manage Assignments</p>
+                          <p className="text-sm text-gray-600">Create and grade assignments</p>
+                        </div>
+                      </button>
+
+                      <button className="w-full flex items-center space-x-3 p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors group">
+                        <div className="bg-yellow-600 p-2 rounded-lg group-hover:bg-yellow-700 transition-colors">
+                          <BarChart3 className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900">View Analytics</p>
+                          <p className="text-sm text-gray-600">Course performance</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'courses' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Course Management</h3>
+                  <button 
+                    onClick={() => window.location.href = '/create-course'}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Course</span>
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {instructorCourses.map((course) => (
+                    <div key={course.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                      <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="p-4">
+                        <h4 className="font-medium text-gray-900 mb-2">{course.title}</h4>
+                        <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
+                          <span className="flex items-center">
+                            <Users className="w-4 h-4 mr-1" />
+                            {course.totalStudents}
+                          </span>
+                          <span className="flex items-center">
+                            <Star className="w-4 h-4 mr-1 text-yellow-400" />
+                            {course.rating}
+                          </span>
+                          <span className="flex items-center">
+                            <DollarSign className="w-4 h-4 mr-1" />
+                            ${course.price}
+                          </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <button className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors">
+                            Edit Course
+                          </button>
+                          <button className="p-2 text-gray-600 hover:text-blue-600 border border-gray-300 rounded hover:border-blue-300 transition-colors">
                             <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No courses yet</h3>
-                    <p className="text-gray-600 mb-6">Create your first course to start teaching</p>
-                    <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                      Create Your First Course
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'students' && (
+              <StudentTracker courses={instructorCourses} enrollments={enrollments} />
+            )}
+
+            {activeTab === 'analytics' && (
+              <RevenueAnalytics 
+                stats={{
+                  totalCourses: stats.totalCourses,
+                  totalStudents: stats.totalStudents,
+                  totalRevenue: stats.totalRevenue,
+                  averageRating: stats.averageRating,
+                  totalReviews: instructorCourses.reduce((sum, course) => sum + course.totalRatings, 0),
+                  monthlyEarnings: Array(12).fill(0).map(() => Math.random() * 5000 + 2000),
+                  coursePerformance: instructorCourses.map(course => ({
+                    courseId: course.id,
+                    courseName: course.title,
+                    students: course.totalStudents,
+                    revenue: course.revenue || 0,
+                    rating: course.rating,
+                    completion: Math.floor(Math.random() * 30) + 70
+                  })),
+                  pendingPayouts: 0,
+                  totalPayouts: stats.totalRevenue
+                }}
+                payments={instructorPayments}
+                courses={instructorCourses}
+              />
+            )}
+
+            {activeTab === 'tools' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">Teaching Tools</h3>
+                
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="bg-blue-100 p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <Video className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Live Classes</h4>
+                    <p className="text-sm text-gray-600 mb-4">Schedule and conduct live video sessions with your students</p>
+                    <button 
+                      onClick={() => setShowLiveMeetingScheduler(true)}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Schedule Live Class
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-              <p className="text-gray-600 mt-1">Latest updates from your courses</p>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getActivityIcon(activity.type)}
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="bg-purple-100 p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <FileText className="h-6 w-6 text-purple-600" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">
-                        <span className="font-medium">{activity.studentName}</span> {activity.message}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{activity.courseName}</p>
-                      <p className="text-xs text-gray-400 mt-1">{formatTimeAgo(activity.timestamp)}</p>
-                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Assignments</h4>
+                    <p className="text-sm text-gray-600 mb-4">Create, manage, and grade student assignments</p>
+                    <button 
+                      onClick={() => setShowAssignmentManager(true)}
+                      className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Manage Assignments
+                    </button>
                   </div>
-                ))}
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="bg-green-100 p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <BarChart3 className="h-6 w-6 text-green-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Analytics</h4>
+                    <p className="text-sm text-gray-600 mb-4">Track student progress and course performance</p>
+                    <button 
+                      onClick={() => setActiveTab('analytics')}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      View Analytics
+                    </button>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="bg-yellow-100 p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <MessageSquare className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Student Q&A</h4>
+                    <p className="text-sm text-gray-600 mb-4">Answer student questions and provide support</p>
+                    <button className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors">
+                      View Questions
+                    </button>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="bg-red-100 p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <Award className="h-6 w-6 text-red-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Certificates</h4>
+                    <p className="text-sm text-gray-600 mb-4">Manage and issue course completion certificates</p>
+                    <button className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                      Manage Certificates
+                    </button>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="bg-indigo-100 p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <Settings className="h-6 w-6 text-indigo-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Course Settings</h4>
+                    <p className="text-sm text-gray-600 mb-4">Configure course settings and preferences</p>
+                    <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                      Course Settings
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
-            <p className="text-gray-600 mt-1">Common tasks and shortcuts</p>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <button className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
-                <div className="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-700 transition-colors">
-                  <Plus className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Create Course</p>
-                  <p className="text-sm text-gray-600">Start a new course</p>
-                </div>
-              </button>
+        {/* Assignment Manager Modal */}
+        {showAssignmentManager && (
+          <AssignmentManager
+            courses={instructorCourses}
+            selectedCourse={null}
+            onClose={() => setShowAssignmentManager(false)}
+          />
+        )}
 
-              <button className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
-                <div className="bg-green-600 p-2 rounded-lg group-hover:bg-green-700 transition-colors">
-                  <BarChart3 className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">View Analytics</p>
-                  <p className="text-sm text-gray-600">Course performance</p>
-                </div>
-              </button>
-
-              <button className="flex items-center space-x-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group">
-                <div className="bg-purple-600 p-2 rounded-lg group-hover:bg-purple-700 transition-colors">
-                  <MessageSquare className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Student Q&A</p>
-                  <p className="text-sm text-gray-600">Answer questions</p>
-                </div>
-              </button>
-
-              <button className="flex items-center space-x-3 p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors group">
-                <div className="bg-yellow-600 p-2 rounded-lg group-hover:bg-yellow-700 transition-colors">
-                  <Calendar className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Schedule Live</p>
-                  <p className="text-sm text-gray-600">Live sessions</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Live Meeting Scheduler Modal */}
+        {showLiveMeetingScheduler && (
+          <LiveMeetingScheduler
+            courses={instructorCourses}
+            selectedCourse={null}
+            onClose={() => setShowLiveMeetingScheduler(false)}
+          />
+        )}
       </div>
     </div>
   );

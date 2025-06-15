@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AccessibilitySettings } from '../types';
+import { supabase } from '../lib/supabase';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -28,134 +30,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user on app load
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      // Check and update streak on app load
-      updateUserStreak(userData);
-      // Apply accessibility settings
-      applyAccessibilitySettings(userData.accessibilitySettings);
-    }
-    setIsLoading(false);
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const applyAccessibilitySettings = (settings?: AccessibilitySettings) => {
-    if (!settings || settings.disabilityType === 'none') return;
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    const root = document.documentElement;
+      if (error) throw error;
 
-    // Reset previous accessibility classes
-    root.className = root.className.replace(/\b(high-contrast|large-click-areas|keyboard-navigation|simplified-layout|reduced-animations|generous-spacing|screen-magnifier-compatible|large-click-targets|keyboard-focus-indicators)\b/g, '');
+      if (profile) {
+        setUser({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          role: profile.role,
+          avatar: profile.avatar,
+          bio: profile.bio,
+          streak: profile.streak,
+          lastLoginDate: profile.last_login_date,
+          joinedDate: profile.joined_date,
+          isVerified: profile.is_verified,
+          accessibilitySettings: profile.accessibility_settings
+        });
 
-    // Visual accessibility
-    if (settings.visualSettings) {
-      const { visualSettings } = settings;
-      
-      // Font size
-      const fontSizeMap = {
-        small: '14px',
-        medium: '16px',
-        large: '18px',
-        'extra-large': '22px'
-      };
-      root.style.fontSize = fontSizeMap[visualSettings.fontSize];
-
-      // Dyslexia font
-      if (visualSettings.dyslexiaFont) {
-        root.style.fontFamily = 'OpenDyslexic, Arial, sans-serif';
+        // Update streak on login
+        await updateUserStreak(profile);
       }
-
-      // High contrast
-      if (visualSettings.highContrast) {
-        root.classList.add('high-contrast');
-      }
-
-      // New partial vision features
-      if (visualSettings.type === 'partial') {
-        // High contrast modes
-        if (visualSettings.highContrastMode && visualSettings.highContrastMode !== 'none') {
-          root.setAttribute('data-contrast-mode', visualSettings.highContrastMode);
-          root.classList.add('partial-vision-contrast');
-        }
-
-        // Font weight
-        if (visualSettings.fontWeight && visualSettings.fontWeight !== 'normal') {
-          root.style.setProperty('--partial-vision-font-weight', visualSettings.fontWeight);
-          root.classList.add('partial-vision-font-weight');
-        }
-
-        // Screen magnifier compatibility
-        if (visualSettings.screenMagnifierCompatible) {
-          root.classList.add('screen-magnifier-compatible');
-        }
-
-        // Generous spacing
-        if (visualSettings.generousSpacing) {
-          root.classList.add('generous-spacing');
-        }
-
-        // Large click targets
-        if (visualSettings.largeClickTargets) {
-          root.classList.add('large-click-targets');
-        }
-
-        // Keyboard focus indicators
-        if (visualSettings.keyboardFocusIndicators) {
-          root.classList.add('keyboard-focus-indicators');
-        }
-      }
-
-      // Color blindness filters
-      if (visualSettings.type === 'colorBlind' && visualSettings.colorBlindType) {
-        root.classList.add(`color-blind-${visualSettings.colorBlindType}`);
-      }
-
-      // Screen reader support
-      if (visualSettings.screenReader) {
-        root.setAttribute('aria-live', 'polite');
-      }
-    }
-
-    // Motor accessibility
-    if (settings.motorSettings) {
-      const { motorSettings } = settings;
-      
-      if (motorSettings.largeClickAreas) {
-        root.classList.add('large-click-areas');
-      }
-      
-      if (motorSettings.keyboardOnly) {
-        root.classList.add('keyboard-navigation');
-      }
-    }
-
-    // Cognitive accessibility
-    if (settings.cognitiveSettings) {
-      const { cognitiveSettings } = settings;
-      
-      if (cognitiveSettings.simplifiedLayout) {
-        root.classList.add('simplified-layout');
-      }
-      
-      if (cognitiveSettings.reducedAnimations) {
-        root.classList.add('reduced-animations');
-      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
     }
   };
 
-  const updateUserStreak = (userData: User) => {
-    const today = new Date().toDateString();
-    const lastLogin = userData.lastLoginDate;
+  const updateUserStreak = async (userData: any) => {
+    const today = new Date().toISOString().split('T')[0];
+    const lastLogin = userData.last_login_date;
     
     if (lastLogin !== today) {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
       
       let newStreak = userData.streak || 0;
       
-      if (lastLogin === yesterday.toDateString()) {
+      if (lastLogin === yesterdayStr) {
         // Consecutive day - increment streak
         newStreak += 1;
       } else if (lastLogin && lastLogin !== today) {
@@ -166,173 +114,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         newStreak = 1;
       }
       
-      const updatedUser = {
-        ...userData,
-        streak: newStreak,
-        lastLoginDate: today
-      };
-      
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
-  };
+      // Update in database
+      await supabase
+        .from('users')
+        .update({ 
+          streak: newStreak,
+          last_login_date: today 
+        })
+        .eq('id', userData.id);
 
-  const updateStreak = () => {
-    if (user) {
-      updateUserStreak(user);
-    }
-  };
+      // Update streak table
+      await supabase
+        .from('streaks')
+        .upsert({
+          user_id: userData.id,
+          current_streak: newStreak,
+          longest_streak: Math.max(newStreak, userData.longest_streak || 0),
+          last_activity_date: today,
+          streak_start_date: newStreak === 1 ? today : userData.streak_start_date
+        });
 
-  const updateAccessibilitySettings = (settings: AccessibilitySettings) => {
-    if (user) {
-      const updatedUser = {
-        ...user,
-        accessibilitySettings: settings
-      };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      applyAccessibilitySettings(settings);
+      // Update local state
+      setUser(prev => prev ? { ...prev, streak: newStreak, lastLoginDate: today } : null);
     }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Mock authentication - in a real app, this would call an API
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@student.com',
-        role: 'student',
-        avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        enrolledCourses: ['1', '2'],
-        streak: 7,
-        lastLoginDate: new Date().toDateString(),
-        joinedDate: '2024-01-01',
-        isVerified: true,
-        accessibilitySettings: {
-          disabilityType: 'none'
-        }
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        email: 'jane@instructor.com',
-        role: 'instructor',
-        avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        bio: 'Full-stack developer with 10+ years of experience',
-        createdCourses: ['1', '3'],
-        totalStudents: 45621,
-        totalRevenue: 45230.50,
-        rating: 4.8,
-        totalReviews: 12543,
-        joinedDate: '2023-06-15',
-        isVerified: true,
-        paymentInfo: {
-          stripeAccountId: 'acct_1234567890',
-          paypalEmail: 'jane@instructor.com'
-        },
-        accessibilitySettings: {
-          disabilityType: 'none'
-        }
-      },
-      {
-        id: 'admin',
-        name: 'Admin User',
-        email: 'admin@learnhub.com',
-        role: 'admin',
-        avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        joinedDate: '2023-01-01',
-        isVerified: true,
-        accessibilitySettings: {
-          disabilityType: 'none'
-        }
+    try {
+      const { data, error } = await authService.signIn({ email, password });
+      
+      if (error || !data.user) {
+        console.error('Login error:', error);
+        return false;
       }
-    ];
 
-    const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser) {
-      updateUserStreak(foundUser);
-      applyAccessibilitySettings(foundUser.accessibilitySettings);
-      setIsLoading(false);
-      return true;
-    }
-    
-    setIsLoading(false);
-    return false;
-  };
-
-  const loginWithGoogle = async (): Promise<boolean> => {
-    setIsLoading(true);
-    
-    try {
-      // Simulate Google OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock Google user data
-      const googleUser: User = {
-        id: `google_${Date.now()}`,
-        name: 'Google User',
-        email: 'user@gmail.com',
-        role: 'student',
-        avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        enrolledCourses: [],
-        streak: 1,
-        lastLoginDate: new Date().toDateString(),
-        joinedDate: new Date().toISOString().split('T')[0],
-        isVerified: true,
-        accessibilitySettings: {
-          disabilityType: 'none'
-        }
-      };
-      
-      setUser(googleUser);
-      localStorage.setItem('user', JSON.stringify(googleUser));
-      applyAccessibilitySettings(googleUser.accessibilitySettings);
-      setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Google login failed:', error);
-      setIsLoading(false);
+      console.error('Login failed:', error);
       return false;
-    }
-  };
-
-  const loginWithTwitter = async (): Promise<boolean> => {
-    setIsLoading(true);
-    
-    try {
-      // Simulate Twitter OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock Twitter user data
-      const twitterUser: User = {
-        id: `twitter_${Date.now()}`,
-        name: 'Twitter User',
-        email: 'user@twitter.com',
-        role: 'student',
-        avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        enrolledCourses: [],
-        streak: 1,
-        lastLoginDate: new Date().toDateString(),
-        joinedDate: new Date().toISOString().split('T')[0],
-        isVerified: true,
-        accessibilitySettings: {
-          disabilityType: 'none'
-        }
-      };
-      
-      setUser(twitterUser);
-      localStorage.setItem('user', JSON.stringify(twitterUser));
-      applyAccessibilitySettings(twitterUser.accessibilitySettings);
+    } finally {
       setIsLoading(false);
-      return true;
-    } catch (error) {
-      console.error('Twitter login failed:', error);
-      setIsLoading(false);
-      return false;
     }
   };
 
@@ -345,38 +168,94 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<boolean> => {
     setIsLoading(true);
     
-    // Mock registration
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role,
-      enrolledCourses: [],
-      createdCourses: [],
-      streak: 1,
-      lastLoginDate: new Date().toDateString(),
-      joinedDate: new Date().toISOString().split('T')[0],
-      isVerified: false,
-      accessibilitySettings
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    applyAccessibilitySettings(accessibilitySettings);
-    setIsLoading(false);
-    return true;
+    try {
+      const { data, error } = await authService.signUp({
+        name,
+        email,
+        password,
+        role,
+        accessibilitySettings
+      });
+      
+      if (error || !data.user) {
+        console.error('Registration error:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
+  const loginWithGoogle = async (): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Google login failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithTwitter = async (): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'twitter',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Twitter login failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('user');
-    // Reset accessibility settings
-    const root = document.documentElement;
-    root.className = '';
-    root.style.fontSize = '';
-    root.style.fontFamily = '';
-    root.removeAttribute('data-contrast-mode');
-    root.style.removeProperty('--partial-vision-font-weight');
+  };
+
+  const updateStreak = async () => {
+    if (user) {
+      await updateUserStreak(user);
+    }
+  };
+
+  const updateAccessibilitySettings = async (settings: AccessibilitySettings) => {
+    if (user) {
+      try {
+        const { error } = await authService.updateAccessibilitySettings(user.id, settings);
+        
+        if (!error) {
+          setUser(prev => prev ? { ...prev, accessibilitySettings: settings } : null);
+        }
+      } catch (error) {
+        console.error('Failed to update accessibility settings:', error);
+      }
+    }
   };
 
   return (
