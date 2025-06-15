@@ -37,7 +37,7 @@ const Cart: React.FC = () => {
     // Process each course individually
     cart.forEach(item => {
       const payment = processPayment(item.courseId, user.id, item.course.price, 'card');
-      enrollInCourse(item.courseId, user.id, payment.id);
+      enrollInCourse(item.courseId, user.id, payment);
     });
     
     alert('Purchase successful! You are now enrolled in all courses.');
@@ -47,7 +47,9 @@ const Cart: React.FC = () => {
   const handlePaymentSuccess = (paymentId: string) => {
     if (!user || !selectedCourse) return;
     
-    enrollInCourse(selectedCourse.id, user.id, paymentId);
+    // Create a payment object for the single course checkout
+    const payment = processPayment(selectedCourse.id, user.id, selectedCourse.price, 'card');
+    enrollInCourse(selectedCourse.id, user.id, payment);
     alert('Purchase successful! You are now enrolled in the course.');
     setShowPaymentModal(false);
     setSelectedCourse(null);

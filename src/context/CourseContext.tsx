@@ -11,7 +11,7 @@ interface CourseContextType {
   addToCart: (course: Course) => void;
   removeFromCart: (courseId: string) => void;
   clearCart: () => void;
-  enrollInCourse: (courseId: string, userId: string, paymentId: string) => void;
+  enrollInCourse: (courseId: string, userId: string, payment: Payment) => void;
   isEnrolled: (courseId: string, userId: string) => boolean;
   getEnrollment: (courseId: string, userId: string) => Enrollment | undefined;
   updateProgress: (courseId: string, userId: string, lessonId: string) => void;
@@ -73,14 +73,13 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return payment;
   };
 
-  const enrollInCourse = (courseId: string, userId: string, paymentId: string) => {
+  const enrollInCourse = (courseId: string, userId: string, payment: Payment) => {
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
 
-    // Check if payment exists and is completed
-    const payment = payments.find(p => p.id === paymentId && p.status === 'completed');
-    if (!payment) {
-      console.error('Payment not found or not completed');
+    // Check if payment is completed
+    if (payment.status !== 'completed') {
+      console.error('Payment not completed');
       return;
     }
 
@@ -102,7 +101,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       lastAccessedAt: new Date().toISOString(),
       certificateIssued: false,
       totalTimeSpent: 0,
-      paymentId,
+      paymentId: payment.id,
       amountPaid: course.price
     };
     
