@@ -1,0 +1,746 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Accessibility Styles */
+
+/* High Contrast Mode */
+.high-contrast {
+  --bg-primary: #000000;
+  --bg-secondary: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #000000;
+  --border-color: #ffffff;
+  --link-color: #ffff00;
+  --button-bg: #ffffff;
+  --button-text: #000000;
+}
+
+.high-contrast * {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea {
+  background-color: var(--button-bg) !important;
+  color: var(--button-text) !important;
+  border: 2px solid var(--border-color) !important;
+}
+
+.high-contrast a {
+  color: var(--link-color) !important;
+  text-decoration: underline !important;
+}
+
+/* Partial Vision High Contrast Modes */
+.partial-vision-contrast[data-contrast-mode="black-yellow"] {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="black-yellow"] * {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="white-black"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="white-black"] * {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="yellow-black"] {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="yellow-black"] * {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+  border-color: #ffff00 !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="blue-white"] {
+  background-color: #ffffff !important;
+  color: #0000ff !important;
+}
+
+.partial-vision-contrast[data-contrast-mode="blue-white"] * {
+  background-color: #ffffff !important;
+  color: #0000ff !important;
+  border-color: #0000ff !important;
+}
+
+/* Partial Vision Font Weight */
+.partial-vision-font-weight * {
+  font-weight: var(--partial-vision-font-weight) !important;
+}
+
+/* Screen Magnifier Compatibility */
+.screen-magnifier-compatible {
+  overflow-x: auto !important;
+}
+
+.screen-magnifier-compatible * {
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.screen-magnifier-compatible .grid {
+  display: block !important;
+}
+
+.screen-magnifier-compatible .flex {
+  flex-wrap: wrap !important;
+}
+
+/* Generous Spacing */
+.generous-spacing * {
+  margin: 1rem 0 !important;
+  padding: 1rem !important;
+  line-height: 2 !important;
+}
+
+.generous-spacing button,
+.generous-spacing a,
+.generous-spacing input,
+.generous-spacing select,
+.generous-spacing textarea {
+  margin: 1.5rem 0 !important;
+  padding: 1.5rem !important;
+}
+
+/* Large Click Targets */
+.large-click-targets button,
+.large-click-targets a,
+.large-click-targets input,
+.large-click-targets select,
+.large-click-targets textarea {
+  min-height: 60px !important;
+  min-width: 60px !important;
+  padding: 20px !important;
+  font-size: 1.25rem !important;
+}
+
+.large-click-targets .cursor-pointer {
+  min-height: 60px !important;
+  min-width: 60px !important;
+  padding: 20px !important;
+}
+
+/* Keyboard Focus Indicators */
+.keyboard-focus-indicators *:focus {
+  outline: 4px solid #2563eb !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.3) !important;
+}
+
+.keyboard-focus-indicators button:focus,
+.keyboard-focus-indicators a:focus,
+.keyboard-focus-indicators input:focus,
+.keyboard-focus-indicators select:focus,
+.keyboard-focus-indicators textarea:focus {
+  outline: 4px solid #2563eb !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.3) !important;
+  background-color: rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Color Blindness Adaptations */
+
+/* Protanopia (Red-blind) - Cannot see red light */
+.color-blind-protanopia {
+  --red-replacement: #8B4513; /* Brown */
+  --green-safe: #228B22; /* Forest Green */
+  --blue-safe: #0000FF; /* Blue */
+  --yellow-safe: #FFD700; /* Gold */
+  --orange-replacement: #FF8C00; /* Dark Orange */
+  --purple-replacement: #4B0082; /* Indigo */
+}
+
+.color-blind-protanopia .bg-red-500,
+.color-blind-protanopia .bg-red-600,
+.color-blind-protanopia .bg-red-700 {
+  background-color: var(--red-replacement) !important;
+}
+
+.color-blind-protanopia .text-red-500,
+.color-blind-protanopia .text-red-600,
+.color-blind-protanopia .text-red-700 {
+  color: var(--red-replacement) !important;
+}
+
+.color-blind-protanopia .border-red-500,
+.color-blind-protanopia .border-red-600,
+.color-blind-protanopia .border-red-700 {
+  border-color: var(--red-replacement) !important;
+}
+
+.color-blind-protanopia .bg-green-500,
+.color-blind-protanopia .bg-green-600,
+.color-blind-protanopia .bg-green-700 {
+  background-color: var(--green-safe) !important;
+}
+
+.color-blind-protanopia .text-green-500,
+.color-blind-protanopia .text-green-600,
+.color-blind-protanopia .text-green-700 {
+  color: var(--green-safe) !important;
+}
+
+.color-blind-protanopia .bg-orange-500,
+.color-blind-protanopia .bg-orange-600 {
+  background-color: var(--orange-replacement) !important;
+}
+
+/* Deuteranopia (Green-blind) - Cannot see green light */
+.color-blind-deuteranopia {
+  --green-replacement: #4169E1; /* Royal Blue */
+  --red-safe: #DC143C; /* Crimson */
+  --blue-safe: #0000FF; /* Blue */
+  --yellow-safe: #FFD700; /* Gold */
+  --orange-safe: #FF4500; /* Orange Red */
+  --purple-safe: #8A2BE2; /* Blue Violet */
+}
+
+.color-blind-deuteranopia .bg-green-500,
+.color-blind-deuteranopia .bg-green-600,
+.color-blind-deuteranopia .bg-green-700 {
+  background-color: var(--green-replacement) !important;
+}
+
+.color-blind-deuteranopia .text-green-500,
+.color-blind-deuteranopia .text-green-600,
+.color-blind-deuteranopia .text-green-700 {
+  color: var(--green-replacement) !important;
+}
+
+.color-blind-deuteranopia .border-green-500,
+.color-blind-deuteranopia .border-green-600,
+.color-blind-deuteranopia .border-green-700 {
+  border-color: var(--green-replacement) !important;
+}
+
+.color-blind-deuteranopia .bg-red-500,
+.color-blind-deuteranopia .bg-red-600,
+.color-blind-deuteranopia .bg-red-700 {
+  background-color: var(--red-safe) !important;
+}
+
+.color-blind-deuteranopia .text-red-500,
+.color-blind-deuteranopia .text-red-600,
+.color-blind-deuteranopia .text-red-700 {
+  color: var(--red-safe) !important;
+}
+
+/* Tritanopia (Blue-blind) - Cannot see blue light */
+.color-blind-tritanopia {
+  --blue-replacement: #FF1493; /* Deep Pink */
+  --red-safe: #FF0000; /* Red */
+  --green-safe: #00FF00; /* Lime */
+  --yellow-safe: #FFFF00; /* Yellow */
+  --purple-replacement: #FF69B4; /* Hot Pink */
+  --cyan-replacement: #00FFFF; /* Cyan */
+}
+
+.color-blind-tritanopia .bg-blue-500,
+.color-blind-tritanopia .bg-blue-600,
+.color-blind-tritanopia .bg-blue-700 {
+  background-color: var(--blue-replacement) !important;
+}
+
+.color-blind-tritanopia .text-blue-500,
+.color-blind-tritanopia .text-blue-600,
+.color-blind-tritanopia .text-blue-700 {
+  color: var(--blue-replacement) !important;
+}
+
+.color-blind-tritanopia .border-blue-500,
+.color-blind-tritanopia .border-blue-600,
+.color-blind-tritanopia .border-blue-700 {
+  border-color: var(--blue-replacement) !important;
+}
+
+.color-blind-tritanopia .bg-purple-500,
+.color-blind-tritanopia .bg-purple-600,
+.color-blind-tritanopia .bg-purple-700 {
+  background-color: var(--purple-replacement) !important;
+}
+
+.color-blind-tritanopia .text-purple-500,
+.color-blind-tritanopia .text-purple-600,
+.color-blind-tritanopia .text-purple-700 {
+  color: var(--purple-replacement) !important;
+}
+
+/* Protanomaly (Reduced red sensitivity) */
+.color-blind-protanomaly {
+  --red-muted: #A0522D; /* Sienna */
+  --green-enhanced: #32CD32; /* Lime Green */
+  --blue-enhanced: #4169E1; /* Royal Blue */
+}
+
+.color-blind-protanomaly .bg-red-500,
+.color-blind-protanomaly .bg-red-600,
+.color-blind-protanomaly .bg-red-700 {
+  background-color: var(--red-muted) !important;
+}
+
+.color-blind-protanomaly .text-red-500,
+.color-blind-protanomaly .text-red-600,
+.color-blind-protanomaly .text-red-700 {
+  color: var(--red-muted) !important;
+}
+
+.color-blind-protanomaly .bg-green-500,
+.color-blind-protanomaly .bg-green-600,
+.color-blind-protanomaly .bg-green-700 {
+  background-color: var(--green-enhanced) !important;
+}
+
+.color-blind-protanomaly .text-green-500,
+.color-blind-protanomaly .text-green-600,
+.color-blind-protanomaly .text-green-700 {
+  color: var(--green-enhanced) !important;
+}
+
+/* Deuteranomaly (Reduced green sensitivity) */
+.color-blind-deuteranomaly {
+  --green-muted: #6B8E23; /* Olive Drab */
+  --red-enhanced: #FF4500; /* Orange Red */
+  --blue-enhanced: #0000CD; /* Medium Blue */
+}
+
+.color-blind-deuteranomaly .bg-green-500,
+.color-blind-deuteranomaly .bg-green-600,
+.color-blind-deuteranomaly .bg-green-700 {
+  background-color: var(--green-muted) !important;
+}
+
+.color-blind-deuteranomaly .text-green-500,
+.color-blind-deuteranomaly .text-green-600,
+.color-blind-deuteranomaly .text-green-700 {
+  color: var(--green-muted) !important;
+}
+
+.color-blind-deuteranomaly .bg-red-500,
+.color-blind-deuteranomaly .bg-red-600,
+.color-blind-deuteranomaly .bg-red-700 {
+  background-color: var(--red-enhanced) !important;
+}
+
+.color-blind-deuteranomaly .text-red-500,
+.color-blind-deuteranomaly .text-red-600,
+.color-blind-deuteranomaly .text-red-700 {
+  color: var(--red-enhanced) !important;
+}
+
+/* Tritanomaly (Reduced blue sensitivity) */
+.color-blind-tritanomaly {
+  --blue-muted: #4682B4; /* Steel Blue */
+  --yellow-enhanced: #FFD700; /* Gold */
+  --red-enhanced: #DC143C; /* Crimson */
+}
+
+.color-blind-tritanomaly .bg-blue-500,
+.color-blind-tritanomaly .bg-blue-600,
+.color-blind-tritanomaly .bg-blue-700 {
+  background-color: var(--blue-muted) !important;
+}
+
+.color-blind-tritanomaly .text-blue-500,
+.color-blind-tritanomaly .text-blue-600,
+.color-blind-tritanomaly .text-blue-700 {
+  color: var(--blue-muted) !important;
+}
+
+.color-blind-tritanomaly .bg-yellow-400,
+.color-blind-tritanomaly .bg-yellow-500 {
+  background-color: var(--yellow-enhanced) !important;
+}
+
+.color-blind-tritanomaly .text-yellow-400,
+.color-blind-tritanomaly .text-yellow-500 {
+  color: var(--yellow-enhanced) !important;
+}
+
+/* Monochromacy (Complete color blindness) */
+.color-blind-monochromacy {
+  filter: grayscale(100%) !important;
+}
+
+.color-blind-monochromacy * {
+  filter: grayscale(100%) !important;
+}
+
+/* Enhance contrast for monochromacy */
+.color-blind-monochromacy .bg-red-500,
+.color-blind-monochromacy .bg-red-600,
+.color-blind-monochromacy .bg-red-700 {
+  background-color: #404040 !important; /* Dark Gray */
+}
+
+.color-blind-monochromacy .bg-green-500,
+.color-blind-monochromacy .bg-green-600,
+.color-blind-monochromacy .bg-green-700 {
+  background-color: #808080 !important; /* Medium Gray */
+}
+
+.color-blind-monochromacy .bg-blue-500,
+.color-blind-monochromacy .bg-blue-600,
+.color-blind-monochromacy .bg-blue-700 {
+  background-color: #606060 !important; /* Darker Gray */
+}
+
+.color-blind-monochromacy .bg-yellow-400,
+.color-blind-monochromacy .bg-yellow-500 {
+  background-color: #C0C0C0 !important; /* Light Gray */
+}
+
+.color-blind-monochromacy .bg-purple-500,
+.color-blind-monochromacy .bg-purple-600,
+.color-blind-monochromacy .bg-purple-700 {
+  background-color: #505050 !important; /* Medium Dark Gray */
+}
+
+.color-blind-monochromacy .bg-orange-500,
+.color-blind-monochromacy .bg-orange-600 {
+  background-color: #707070 !important; /* Medium Light Gray */
+}
+
+/* Achromatopsia (Complete absence of color vision) */
+.color-blind-achromatopsia {
+  filter: grayscale(100%) contrast(150%) brightness(110%) !important;
+}
+
+.color-blind-achromatopsia * {
+  filter: grayscale(100%) contrast(150%) brightness(110%) !important;
+}
+
+/* Enhanced patterns and textures for color blind users */
+.color-blind-protanopia .bg-red-500::before,
+.color-blind-deuteranopia .bg-green-500::before,
+.color-blind-tritanopia .bg-blue-500::before,
+.color-blind-monochromacy .bg-red-500::before,
+.color-blind-achromatopsia .bg-red-500::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.1) 2px,
+    rgba(255,255,255,0.1) 4px
+  );
+  pointer-events: none;
+}
+
+/* Large Click Areas */
+.large-click-areas button,
+.large-click-areas a,
+.large-click-areas input,
+.large-click-areas select {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  padding: 12px 16px !important;
+}
+
+/* Keyboard Navigation */
+.keyboard-navigation *:focus {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 2px !important;
+}
+
+.keyboard-navigation button:focus,
+.keyboard-navigation a:focus,
+.keyboard-navigation input:focus,
+.keyboard-navigation select:focus,
+.keyboard-navigation textarea:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5) !important;
+}
+
+/* Simplified Layout */
+.simplified-layout {
+  --spacing: 1rem;
+}
+
+.simplified-layout * {
+  margin: var(--spacing) 0 !important;
+  padding: var(--spacing) !important;
+}
+
+.simplified-layout .grid {
+  display: block !important;
+}
+
+.simplified-layout .flex {
+  display: block !important;
+}
+
+.simplified-layout .hidden {
+  display: none !important;
+}
+
+/* Reduced Animations */
+.reduced-animations *,
+.reduced-animations *::before,
+.reduced-animations *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Dyslexia Font */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/fonts/OpenDyslexic-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus Indicators */
+.focus-visible:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Skip Links */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #2563eb;
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Visual Alerts */
+.visual-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #fbbf24;
+  color: #92400e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Voice Navigation Indicator */
+.voice-listening {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #ef4444;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 1000;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Caption Styles */
+.video-captions {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 16px;
+  max-width: 80%;
+  text-align: center;
+  z-index: 10;
+}
+
+/* Text-to-Speech Highlight */
+.tts-highlight {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  outline: 2px solid #f59e0b;
+}
+
+/* Color Blind Friendly Colors */
+:root {
+  --cb-red: #d73027;
+  --cb-orange: #fc8d59;
+  --cb-yellow: #fee08b;
+  --cb-green: #91cf60;
+  --cb-blue: #4575b4;
+  --cb-purple: #762a83;
+}
+
+.color-blind-safe .bg-red-500 { background-color: var(--cb-red) !important; }
+.color-blind-safe .bg-orange-500 { background-color: var(--cb-orange) !important; }
+.color-blind-safe .bg-yellow-500 { background-color: var(--cb-yellow) !important; }
+.color-blind-safe .bg-green-500 { background-color: var(--cb-green) !important; }
+.color-blind-safe .bg-blue-500 { background-color: var(--cb-blue) !important; }
+.color-blind-safe .bg-purple-500 { background-color: var(--cb-purple) !important; }
+
+/* Responsive Text Sizes */
+.text-responsive-sm { font-size: clamp(0.875rem, 2vw, 1rem); }
+.text-responsive-base { font-size: clamp(1rem, 2.5vw, 1.125rem); }
+.text-responsive-lg { font-size: clamp(1.125rem, 3vw, 1.25rem); }
+.text-responsive-xl { font-size: clamp(1.25rem, 3.5vw, 1.5rem); }
+.text-responsive-2xl { font-size: clamp(1.5rem, 4vw, 2rem); }
+
+/* Social Login Button Styles */
+.social-login-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.social-login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.social-login-btn:active {
+  transform: translateY(0);
+}
+
+/* Loading Animation for Social Login */
+.social-login-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.social-login-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* OAuth Provider Specific Styles */
+.google-btn {
+  border: 1px solid #dadce0;
+}
+
+.google-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #dadce0;
+}
+
+.twitter-btn {
+  border: 1px solid #1da1f2;
+}
+
+.twitter-btn:hover {
+  background-color: #e8f4fd;
+  border-color: #1da1f2;
+}
+
+/* Success/Error States for Social Login */
+.auth-success {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.auth-error {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+/* Accessibility improvements for social login */
+.social-login-btn:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.social-login-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* High contrast mode for social buttons */
+.high-contrast .social-login-btn {
+  border: 2px solid #ffffff !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast .social-login-btn svg {
+  filter: invert(1) !important;
+}
